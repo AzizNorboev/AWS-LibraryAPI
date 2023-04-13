@@ -2,49 +2,37 @@ name: CI/CD
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+  IMAGE_NAME: myapp
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v2
-      - name: Setup .NET 6 SDK
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: 6.0.x
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+      - name: Build app
+        run: dotnet build
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+      - name: Build Docker image
+        run: |
+          docker build -t $ECR_REGISTRY/$IMAGE_NAME:$GITHUB_SHA .
+          docker tag $ECR_REGISTRY/$IMAGE_NAME:$GITHUB_SHA $ECR_REGISTRY/$IMAGE_NAME:latest
 
-      - name: Build and publish Docker image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: library
-          IMAGE_TAG: ${{ github.sha }}
-        steps:
-          - run: |
-              docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-              docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
+      - name: Push Docker image to ECR
+        run: |
+          $(aws ecr get-login --no-include-email)
+          docker push $ECR_REGISTRY/$IMAGE_NAME:$GITHUB_SHA
+          docker push $ECR_REGISTRY/$IMAGE_NAME:latest
 
-      - name: SSH into EC2 instance and deploy Docker image
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: 54.167.156.117
-          username: ec2-user
-          key: ${{ secrets.DEPLOYMENT_KEY }}
-          script: |
-            docker stop library-api-app || true
-            docker rm library-api-app || true
-            docker pull public.ecr.aws/u3q3l1u9/library:${{ github.sha }}
-            docker run -d -p 80:80 --name library-api-app public.ecr.aws/u3q3l1u9/library:${{ github.sha }}
+      - name: Deploy to EC2 instance
+        run: |
+          ssh -o "StrictHostKeyChecking=no" -i ${{ secrets.DEPLOYMENT_KEY }} ec2-user@${{ secrets.EC2_INSTANCE_IP }} "docker-compose down && docker-compose up -d"
