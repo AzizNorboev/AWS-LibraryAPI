@@ -10,13 +10,13 @@ WORKDIR /src
 COPY ["LibraryAPI/LibraryAPI/LibraryAPI.csproj", "LibraryAPI/"]
 RUN dotnet restore "LibraryAPI/LibraryAPI.csproj"
 COPY . .
-WORKDIR "/src/LibraryAPI"
-RUN dotnet build "LibraryAPI.csproj" -c Release -o /app/build
+WORKDIR "/src/LibraryAPI/LibraryAPI/"
+RUN dotnet build "LibraryAPI/LibraryAPI.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "LibraryAPI.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "LibraryAPI/LibraryAPI.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "LibraryAPI.dll"]
+ENTRYPOINT ["dotnet", "LibraryAPI/LibraryAPI.dll"]
