@@ -8,7 +8,7 @@ EXPOSE 443
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
 COPY ["LibraryAPI/LibraryAPI/LibraryAPI.csproj", "LibraryAPI/LibraryAPI/"]
-RUN dotnet restore "LibraryAPI/LibraryAPI.csproj"
+RUN dotnet restore "LibraryAPI/LibraryAPI/LibraryAPI.csproj"
 COPY . .
 WORKDIR "/src/LibraryAPI/"
 RUN dotnet build "LibraryAPI.csproj" -c Release -o /app/build
