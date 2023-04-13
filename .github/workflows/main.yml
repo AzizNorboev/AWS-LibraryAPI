@@ -29,12 +29,13 @@ jobs:
 
       - name: Build and publish Docker image
         env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: library
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-        docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: library
+          IMAGE_TAG: ${{ github.sha }}
+        steps:
+          - run: |
+              docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+              docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
 
       - name: SSH into EC2 instance and deploy Docker image
         uses: appleboy/ssh-action@v0.1.10
