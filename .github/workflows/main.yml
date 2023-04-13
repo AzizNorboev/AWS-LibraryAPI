@@ -21,7 +21,7 @@ jobs:
           docker login -u AWS -p $(aws ecr get-login-password --region us-east-1) https://us-east-1.console.aws.amazon.com/ecr/repositories/public/105319023386/library?region=us-east-1
           docker push https://us-east-1.console.aws.amazon.com/ecr/repositories/public/105319023386/library?region=us-east-1:${{ github.sha }}
       - name: SSH into EC2 instance and deploy Docker image
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@v0.1.10
         with:
           host: 54.167.156.117
           username: ec2-user
