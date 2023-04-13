@@ -1,0 +1,33 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Setup .NET 6 SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 6.0.x
+      - name: Build and publish Docker image
+        run: |
+          docker build -t https://us-east-1.console.aws.amazon.com/ecr/repositories/public/105319023386/library?region=us-east-1:${{ github.sha }} .
+          docker login -u AWS -p $(aws ecr get-login-password --region us-east-1) https://us-east-1.console.aws.amazon.com/ecr/repositories/public/105319023386/library?region=us-east-1
+          docker push https://us-east-1.console.aws.amazon.com/ecr/repositories/public/105319023386/library?region=us-east-1:${{ github.sha }}
+      - name: SSH into EC2 instance and deploy Docker image
+        uses: appleboy/ssh-action@main
+        with:
+          host: 54.167.156.117
+          username: ec2-user
+          key: ${{ secrets.DEPLOYMENT_KEY }}
+          script: |
+            docker stop library-api-app || true
+            docker rm library-api-app || true
+            docker pull https://us-east-1.console.aws.amazon.com/ecr/repositories/public/105319023386/library?region=us-east-1:${{ github.sha }}
+            docker run -d -p 80:80 --name library-api-app https://us-east-1.console.aws.amazon.com/ecr/repositories/public/105319023386/library?region=us-east-1:${{ github.sha }}
