@@ -17,11 +17,11 @@ jobs:
           dotnet-version: 6.0.x
       - name: Build and publish Docker image
         run: |
-          docker build -t https://us-east-1.console.aws.amazon.com/ecr/repositories/public/105319023386/library?region=us-east-1:${{ github.sha }} .
-          docker login -u AWS -p $(aws ecr get-login-password --region us-east-1) https://us-east-1.console.aws.amazon.com/ecr/repositories/public/105319023386/library?region=us-east-1
-          docker push https://us-east-1.console.aws.amazon.com/ecr/repositories/public/105319023386/library?region=us-east-1:${{ github.sha }}
+          docker build -t public.ecr.aws/u3q3l1u9/library:${{ github.sha }} .
+          docker login -u AWS -p $(aws ecr get-login-password --region us-east-1) public.ecr.aws/u3q3l1u9/library
+          docker push public.ecr.aws/u3q3l1u9/library:${{ github.sha }}
       - name: SSH into EC2 instance and deploy Docker image
-        uses: appleboy/ssh-action@main
+        uses: appleboy/ssh-action@v0.1.10
         with:
           host: 54.167.156.117
           username: ec2-user
@@ -29,5 +29,5 @@ jobs:
           script: |
             docker stop library-api-app || true
             docker rm library-api-app || true
-            docker pull https://us-east-1.console.aws.amazon.com/ecr/repositories/public/105319023386/library?region=us-east-1:${{ github.sha }}
-            docker run -d -p 80:80 --name library-api-app https://us-east-1.console.aws.amazon.com/ecr/repositories/public/105319023386/library?region=us-east-1:${{ github.sha }}
+            docker pull public.ecr.aws/u3q3l1u9/library:${{ github.sha }}
+            docker run -d -p 80:80 --name library-api-app public.ecr.aws/u3q3l1u9/library:${{ github.sha }}
