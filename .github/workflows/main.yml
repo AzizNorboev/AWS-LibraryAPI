@@ -49,8 +49,8 @@ jobs:
           key: ${{ secrets.DEPLOYMENT_KEY }}
           port: 22
           script: |
-            sudo docker stop ${ECR_REPOSITORY} || true
-            sudo docker rm ${ECR_REPOSITORY} || true
+            sudo docker stop ${ECR_REPOSITORY}
+            sudo docker rm ${ECR_REPOSITORY}
             sudo docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
             sudo docker run -d --restart always --name ${ECR_REPOSITORY} -p 80:80 ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
       #- name: Deploy app on EC2 instance
