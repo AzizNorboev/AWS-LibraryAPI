@@ -40,14 +40,28 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 105319023386.dkr.ecr.us-east-1.amazonaws.com
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-      - name: Deploy app on EC2 instance
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.DEPLOYMENT_KEY }}
-          EC2_INSTANCE_IP: ${{ secrets.EC2_INSTANCE_IP }}
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          ssh -i $SSH_PRIVATE_KEY ec2-user@$EC2_INSTANCE_IP "docker stop $ECR_REPOSITORY || true && docker rm $ECR_REPOSITORY || true"
-          ssh -i $SSH_PRIVATE_KEY ec2-user@$EC2_INSTANCE_IP "docker pull $ECR_REGISTRY/$ECR_REPOSITORY"
-          ssh -i $SSH_PRIVATE_KEY ec2-user@$EC2_INSTANCE_IP "docker run -d --name $ECR_REPOSITORY -p 80:80 $ECR_REGISTRY/$ECR_REPOSITORY"
+  EC2-Deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: main
+      url: ${{ secrets.EC2_INSTANCE_IP }}
+    steps:
+      - id: deploy
+        name: Deploy
+        uses: bitovi/github-actions-deploy-docker-to-ec2@v0.5.0
+        with:
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_default_region: us-east-1
+          app_port: 3000
+        #- name: Deploy app on EC2 instance
+        # env:
+        #  SSH_PRIVATE_KEY: ${{ secrets.DEPLOYMENT_KEY }}
+        # EC2_INSTANCE_IP: ${{ secrets.EC2_INSTANCE_IP }}
+        #ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        #AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        #AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        #run: |
+        # ssh -i $SSH_PRIVATE_KEY ec2-user@$EC2_INSTANCE_IP "docker stop $ECR_REPOSITORY || true && docker rm $ECR_REPOSITORY || true"
+        #ssh -i $SSH_PRIVATE_KEY ec2-user@$EC2_INSTANCE_IP "docker pull $ECR_REGISTRY/$ECR_REPOSITORY"
+        #ssh -i $SSH_PRIVATE_KEY ec2-user@$EC2_INSTANCE_IP "docker run -d --name $ECR_REPOSITORY -p 80:80 $ECR_REGISTRY/$ECR_REPOSITORY"
