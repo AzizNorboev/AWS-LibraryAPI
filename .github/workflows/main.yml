@@ -49,6 +49,7 @@ jobs:
           key: ${{ secrets.DEPLOYMENT_KEY }}
           port: 22
           script: |
+            sudo service docker start
             sudo docker stop $${ECR_REPOSITORY} || true
             sudo docker rm $${ECR_REPOSITORY} || true
             sudo docker pull ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
