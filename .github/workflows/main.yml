@@ -50,11 +50,11 @@ jobs:
           port: 22
           script: |
             sudo service docker start
-            sudo docker create \$ECR_REPOSITORY || true
-            sudo docker stop \$ECR_REPOSITORY || true
-            sudo docker rm \$ECR_REPOSITORY || true
-            sudo docker pull \$ECR_REGISTRY/\$ECR_REPOSITORY:latest
-            sudo docker run -d --restart always --name \$ECR_REPOSITORY -p 80:80 \$ECR_REGISTRY/\$ECR_REPOSITORY:latest
+            sudo docker create libraryapi || true
+            sudo docker stop libraryapi || true
+            sudo docker rm libraryapi || true
+            sudo docker pull \$ECR_REGISTRY/libraryapi:latest
+            sudo docker run -d --restart always --name libraryapi -p 80:80 \$ECR_REGISTRY/libraryapi:latest
       #- name: Deploy app on EC2 instance
       #   env:
       #    SSH_PRIVATE_KEY: ${{ secrets.DEPLOYMENT_KEY }}
