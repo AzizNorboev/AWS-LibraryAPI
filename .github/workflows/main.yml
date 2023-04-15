@@ -52,8 +52,8 @@ jobs:
             sudo service docker start
             sudo docker stop libraryapi || true
             sudo docker rm libraryapi || true
-            sudo docker pull libraryapi/libraryapi:latest
-            sudo docker run -d --restart always --name libraryapi -p 80:80 \$ECR_REGISTRY/libraryapi:latest
+            sudo docker pull \$ECR_REGISTRY/libraryapitest:latest
+            sudo docker run -d --restart always --name libraryapirun -p 80:80 \$ECR_REGISTRY/libraryapiqwe:latest
       #- name: Deploy app on EC2 instance
       #   env:
       #    SSH_PRIVATE_KEY: ${{ secrets.DEPLOYMENT_KEY }}
