@@ -50,11 +50,12 @@ jobs:
           port: 22
           script: |
             sudo service docker start
+            sudo docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }} $ECR_REGISTRY
             sudo docker create libraryapi || true
             sudo docker stop libraryapi || true
             sudo docker rm libraryapi || true
-            sudo docker pull 105319023386.dkr.ecr.us-east-1.amazonaws.com/libraryapi:latest
-            sudo docker run -d --restart always --name libraryapi -p 80:80 105319023386.dkr.ecr.us-east-1.amazonaws.com/libraryapi:latest
+            sudo docker pull $ECR_REGISTRY/libraryapi:latest
+            sudo docker run -d --restart always --name libraryapi -p 80:80 $ECR_REGISTRY/libraryapi:latest
       #- name: Deploy app on EC2 instance
       #   env:
       #    SSH_PRIVATE_KEY: ${{ secrets.DEPLOYMENT_KEY }}
