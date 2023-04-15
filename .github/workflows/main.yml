@@ -49,13 +49,13 @@ jobs:
           key: ${{ secrets.DEPLOYMENT_KEY }}
           port: 22
           script: |
-            sudo service docker start
+            service docker start
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 105319023386.dkr.ecr.us-east-1.amazonaws.com
-            sudo docker create libraryapi || true
-            sudo docker stop libraryapi || true
-            sudo docker rm libraryapi || true
-            sudo docker pull 105319023386.dkr.ecr.us-east-1.amazonaws.com/libraryapi:v1
-            sudo docker run -d --restart always --name webserver -p 80:80 105319023386.dkr.ecr.us-east-1.amazonaws.com/libraryapi:v1
+            docker create webserver || true
+            docker stop webserver || true
+            docker rm webserver || true
+            docker pull 105319023386.dkr.ecr.us-east-1.amazonaws.com/libraryapi:v1
+            docker run -d --restart always --name webserver -p 80:80 105319023386.dkr.ecr.us-east-1.amazonaws.com/libraryapi:v1
       #- name: Deploy app on EC2 instance
       #   env:
       #    SSH_PRIVATE_KEY: ${{ secrets.DEPLOYMENT_KEY }}
