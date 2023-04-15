@@ -55,7 +55,7 @@ jobs:
             docker stop webserver || true
             docker rm webserver || true
             docker pull 105319023386.dkr.ecr.us-east-1.amazonaws.com/libraryapi:v1
-            docker run -d --restart always --name webserver -p 5000:5000 105319023386.dkr.ecr.us-east-1.amazonaws.com/libraryapi:v1
+            docker run --rm --name webserver -p 5000:5000 -p 5001:5001 -e ASPNETCORE_HTTP_PORT=https://+:5001 -e ASPNETCORE_URLS=http://+:5000 105319023386.dkr.ecr.us-east-1.amazonaws.com/libraryapi:v1
       #- name: Deploy app on EC2 instance
       #   env:
       #    SSH_PRIVATE_KEY: ${{ secrets.DEPLOYMENT_KEY }}
