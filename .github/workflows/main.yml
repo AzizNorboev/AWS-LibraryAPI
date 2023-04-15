@@ -50,7 +50,7 @@ jobs:
           port: 22
           script: |
             sudo service docker start
-            sudo docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }} $ECR_REGISTRY
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 105319023386.dkr.ecr.us-east-1.amazonaws.com
             sudo docker create libraryapi || true
             sudo docker stop libraryapi || true
             sudo docker rm libraryapi || true
