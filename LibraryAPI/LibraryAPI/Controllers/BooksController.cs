@@ -48,13 +48,21 @@ namespace LibraryAPI.Controllers
         [HttpPost("book-table")]
         public async Task<IActionResult> Create([FromBody] Book request)
         {
-            var book = request.ToBook();
+            try
+            {
+                var book = request.ToBook();
 
-            await _bookService.CreateAsync(book);
+                await _bookService.CreateAsync(book);
 
-            await MessageHelper.SendMessage(book);
+                await MessageHelper.SendMessage(book);
 
-            return Ok();
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            
         }
             // POST api/<BooksController>
             [HttpPost]
