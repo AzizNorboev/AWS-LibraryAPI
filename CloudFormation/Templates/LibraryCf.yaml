@@ -1,0 +1,177 @@
+# DynamoDb
+Resources:
+  BookTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: book-table
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: ISBN
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ISBN
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: environment
+          Value: production
+
+  #EC2 instance
+  DeployRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      Policies:
+        - PolicyName: "DeployPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "ec2:*"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "sqs:*"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "s3:*"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "dynamodb:*"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "ecr:*"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+
+  DeployInstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: "/"
+      Roles:
+        - !Ref DeployRole
+
+  WebApiInstance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      InstanceType: "t2.micro"
+      ImageId: "ami-0c94855ba95c71c99"
+      KeyName: "library-ec2"
+      SecurityGroupIds:
+        - !Ref WebApiSecurityGroup
+      IamInstanceProfile: !Ref DeployInstanceProfile
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo amazon-linux-extras install dotnet6.0 -y
+          # Install your .NET 6 web API here
+
+  WebApiSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupName: "library-ec2-sg"
+      GroupDescription: "Security group for .NET 6 web API"
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 5000
+          ToPort: 5000
+          CidrIp: "0.0.0.0/0"
+        - IpProtocol: "tcp"
+          FromPort: 5001
+          ToPort: 5001
+          CidrIp: "0.0.0.0/0"
+
+  #SQS Queue
+  BookChangesQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: book-changes
+      VisibilityTimeout: 60
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt BookChangesDeadLetter.Arn
+        maxReceiveCount: 5
+
+  BookChangesDeadLetter:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: book-changes-dead-letter
+
+  #S3 Bucket to store Lambda code and messages
+  LambdaCodeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: lambda-code-bucket-new
+
+  #Lambda
+  LambdaFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: lambda-function-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: lambda-function-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: arn:aws:s3:::lambda-code-bucket-new/*
+              - Effect: Allow
+                Action:
+                  - sqs:GetQueueAttributes
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                Resource: arn:aws:sqs:${AWS::RegionId}:${AWS::AccountId}:book-changes
+              - Effect: Allow
+                Action: iam:PassRole
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/LibrarySqsLambda-CICD"
+
+  LibrarySqsLambdaCICD:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: LibrarySqsLambda-CICD
+      Handler: LibrarySqsLambda::LibrarySqsLambda.Function::FunctionHandler
+      Role: !GetAtt LambdaFunctionRole.Arn
+      Runtime: dotnet6
+      Code:
+        S3Bucket: lambda-code-bucket-new
+        S3Key: LambdaFunctionCode/LibrarySqsLambda.zip
+      Timeout: 60
