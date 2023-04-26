@@ -40,32 +40,41 @@ Resources:
             Statement:
               - Effect: "Allow"
                 Action:
-              - "sqs:SendMessage"
-                Resource: "arn:aws:sqs:${AWS::RegionId}:${AWS::AccountId}:<queue-name>"
+                  - "sqs:SendMessage"
+                Resource: "arn:aws:sqs:us-east-1:105319023386:book-changes"
               - Effect: "Allow"
                 Action:
-              - "dynamodb:GetItem"
-              - "dynamodb:PutItem"
-              - "dynamodb:DeleteItem"
-                Resource: "arn:aws:dynamodb:${AWS::RegionId}:${AWS::AccountId}:table/book-table"
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:DeleteItem"
+                Resource: "arn:aws:dynamodb:us-east-1:105319023386:table/book-table"
               - Effect: "Allow"
                 Action:
-                - "ecr:GetAuthorizationToken"
-                - "ecr:BatchCheckLayerAvailability"
-                - "ecr:GetDownloadUrlForLayer"
-                - "ecr:BatchGetImage"
+                  - "ecr:GetAuthorizationToken"
+                  - "ecr:BatchCheckLayerAvailability"
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "ecr:BatchGetImage"
                 Resource: "*"
               - Effect: "Allow"
                 Action:
-                - "logs:CreateLogGroup"
-                - "logs:CreateLogStream"
-                - "logs:PutLogEvents"
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
                 Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "sqs:GetQueueUrl"
+                  - "sqs:ListDeadLetterSourceQueues"
+                  - "sqs:ReceiveMessage"
+                  - "sqs:SendMessage"
+                  - "sqs:GetQueueAttributes"
+                  - "sqs:ListQueueTags"
+                Resource: "arn:aws:sqs:us-east-1:105319023386:book-changes"
 
   DeployInstanceProfile:
     Type: "AWS::IAM::InstanceProfile"
     Properties:
-      Path: "/"             
+      Path: "/"
       Roles:
         - !Ref DeployRole
 
@@ -74,7 +83,7 @@ Resources:
     Properties:
       InstanceType: "t2.micro"
       ImageId: "ami-0c94855ba95c71c99"
-      KeyName: "library-ec2"
+      KeyName: "ec-library-new"
       SecurityGroupIds:
         - !Ref WebApiSecurityGroup
       IamInstanceProfile: !Ref DeployInstanceProfile
@@ -83,7 +92,10 @@ Resources:
           #!/bin/bash
           sudo yum update -y
           sudo amazon-linux-extras install dotnet6.0 -y
-          # Install your .NET 6 web API here
+          # Install Docker
+          sudo amazon-linux-extras install docker -y
+          sudo service docker start
+          sudo usermod -a -G docker ec2-user
 
   WebApiSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
@@ -91,6 +103,10 @@ Resources:
       GroupName: "library-ec2-sg"
       GroupDescription: "Security group for .NET 6 web API"
       SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 22
+          ToPort: 22
+          CidrIp: "0.0.0.0/0"
         - IpProtocol: "tcp"
           FromPort: 5000
           ToPort: 5000
@@ -152,10 +168,12 @@ Resources:
                   - sqs:GetQueueAttributes
                   - sqs:ReceiveMessage
                   - sqs:DeleteMessage
-                Resource: arn:aws:sqs:${AWS::RegionId}:${AWS::AccountId}:book-changes
+                #Resource: arn:aws:sqs:${AWS::RegionId}:${AWS::AccountId}:book-changes
+                Resource: arn:aws:sqs:us-east-1:105319023386:book-changes
               - Effect: Allow
                 Action: iam:PassRole
-                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/LibrarySqsLambda-CICD"
+                #Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/LibrarySqsLambda-CICD"
+                Resource: !Sub "arn:aws:iam::105319023386:role/LibrarySqsLambda-CICD"
 
   LibrarySqsLambdaCICD:
     Type: AWS::Lambda::Function
@@ -168,3 +186,34 @@ Resources:
         S3Bucket: lambda-code-bucket-new
         S3Key: LambdaFunctionCode/LibrarySqsLambda.zip
       Timeout: 60
+
+  #IAM User
+  DeployUser:
+    Type: "AWS::IAM::User"
+    Properties:
+      UserName: "DeployUser"
+      Policies:
+        - PolicyName: "DeployUserPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: "GetAuthorizationToken"
+                Effect: "Allow"
+                Action:
+                  - "ecr:GetAuthorizationToken"
+                Resource: "*"
+              - Sid: "ManageRepositoryContents"
+                Effect: "Allow"
+                Action:
+                  - "ecr:BatchCheckLayerAvailability"
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "ecr:GetRepositoryPolicy"
+                  - "ecr:DescribeRepositories"
+                  - "ecr:ListImages"
+                  - "ecr:DescribeImages"
+                  - "ecr:BatchGetImage"
+                  - "ecr:InitiateLayerUpload"
+                  - "ecr:UploadLayerPart"
+                  - "ecr:CompleteLayerUpload"
+                  - "ecr:PutImage"
+                Resource: "arn:aws:ecr:us-east-1:105319023386:repository/libraryapi"
