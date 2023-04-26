@@ -51,7 +51,6 @@ jobs:
           script: |
             service docker start
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 105319023386.dkr.ecr.us-east-1.amazonaws.com
-            docker create webserver || true
             docker stop webserver || true
             docker rm webserver || true
             docker pull 105319023386.dkr.ecr.us-east-1.amazonaws.com/libraryapi:v1

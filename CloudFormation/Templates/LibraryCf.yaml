@@ -42,6 +42,7 @@ Resources:
                 Action:
               - "sqs:SendMessage"
                 Resource: "arn:aws:sqs:${AWS::RegionId}:${AWS::AccountId}:<queue-name>"
+              - Effect: "Allow"
                 Action:
               - "dynamodb:GetItem"
               - "dynamodb:PutItem"
