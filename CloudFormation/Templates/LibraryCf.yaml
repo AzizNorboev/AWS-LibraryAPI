@@ -40,39 +40,31 @@ Resources:
             Statement:
               - Effect: "Allow"
                 Action:
-                  - "ec2:*"
+              - "sqs:SendMessage"
+                Resource: "arn:aws:sqs:${AWS::RegionId}:${AWS::AccountId}:<queue-name>"
+                Action:
+              - "dynamodb:GetItem"
+              - "dynamodb:PutItem"
+              - "dynamodb:DeleteItem"
+                Resource: "arn:aws:dynamodb:${AWS::RegionId}:${AWS::AccountId}:table/book-table"
+              - Effect: "Allow"
+                Action:
+                - "ecr:GetAuthorizationToken"
+                - "ecr:BatchCheckLayerAvailability"
+                - "ecr:GetDownloadUrlForLayer"
+                - "ecr:BatchGetImage"
                 Resource: "*"
               - Effect: "Allow"
                 Action:
-                  - "sqs:*"
-                Resource: "*"
-              - Effect: "Allow"
-                Action:
-                  - "s3:*"
-                Resource: "*"
-              - Effect: "Allow"
-                Action:
-                  - "dynamodb:*"
-                Resource: "*"
-              - Effect: "Allow"
-                Action:
-                  - "ecr:*"
-                Resource: "*"
-              - Effect: "Allow"
-                Action:
-                  - "lambda:InvokeFunction"
-                Resource: "*"
-              - Effect: "Allow"
-                Action:
-                  - "logs:CreateLogGroup"
-                  - "logs:CreateLogStream"
-                  - "logs:PutLogEvents"
+                - "logs:CreateLogGroup"
+                - "logs:CreateLogStream"
+                - "logs:PutLogEvents"
                 Resource: "*"
 
   DeployInstanceProfile:
     Type: "AWS::IAM::InstanceProfile"
     Properties:
-      Path: "/"
+      Path: "/"             
       Roles:
         - !Ref DeployRole
 
